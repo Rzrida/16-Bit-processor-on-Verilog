@@ -1,0 +1,75 @@
+module controlunit(clk,reset,rd_value);
+  input clk,reset;
+  reg [7:0] PC; 
+  reg [15:0] ROM [0:15];
+  wire [15:0] instr;
+  assign instr = ROM[PC];
+  reg [2:0] Rd_add,Rs_add,Rt_add,shamt;
+ reg [8:0] address;
+ reg [5:0] constan;
+ wire [3:0] op;
+output [16:0] rd_value;
+  always @(posedge clk or posedge reset) begin  //PC
+  if (reset == 1) begin
+    PC <= 0;
+  end
+  else if (op == 9) begin //j instr
+    PC <= PC + address;
+  end
+  else begin //PC increment 
+    PC <= PC + 1;
+  end
+end
+
+
+  initial begin  //ROM
+    ROM[0] = 16'b001_001_010_000_0000;  //add
+    ROM[1] = 16'b001_000_100_000_0001; //sll
+    ROM[2] = 16'b001_010_100_000_0010; //slr
+	 ROM[3] = 16'b000_010_001_000_0011; //or
+    ROM[4] = 16'b100_010_001_000_0100; //and
+    ROM[5] = 16'b010000_010_000_0101; //addi 
+    ROM[6] = 16'b011010_001_000_0110; //li
+    ROM[7] = 16'b000000_001_100_0111; //lw
+	 ROM[8] = 16'b000000_001_100_1000; //sw
+	 ROM[9] = 16'b000_000000000_0000; //j
+	 ROM[10] = 16'b000_001_010_000_1110; //mul
+	 ROM[11] = 16'b000_001_010_000_1101; //mflo
+	 ROM[12] = 16'b000_001_010_000_1111; //mfhi
+	 ROM[13] = 16'b000_001_010_000_1010; //move
+	 ROM[14] = 16'b000_001_110_000_1010; //addCO
+	 ROM[15] = 16'b000_001_110_000_1010; //moveCO
+
+ 
+      end
+
+assign op = instr[3:0]; //opcode
+
+always @(*) begin   //DECODER
+
+  if (op == 5 | op == 6 | op == 7 | op == 8) begin //I type
+    Rd_add = instr[6:4];
+    Rs_add = instr[9:7];
+    constan = instr[15:10];
+  end 
+  
+  else if (op == 9) begin // J type
+    address = instr[12:4]; 
+  end
+  
+  else if (op == 0 | op == 1 | op == 2 | op == 3 | op == 4 | op == 13 | op == 14 | op == 15 | op==10 | op==11| op==12) begin // R type
+    Rd_add = instr[6:4];
+    Rs_add = instr[9:7];
+    Rt_add = instr[12:10];
+    shamt = instr[15:13];
+  end
+  
+  
+  
+end
+
+
+maincpu call1(clk, reset, op, shamt, constan, Rs_add, Rt_add, Rd_add,rd_value);
+
+endmodule
+

@@ -1,0 +1,58 @@
+module FPU(clk,reset,op,Rs_val,Rt_val,rd_add,rt_add,rs_add,Rs_out,Rd_out);
+  input clk,reset;
+  input [3:0] op;
+  input [15:0] Rs_val,Rt_val;
+  input [2:0] rt_add,rd_add,rs_add;
+  output  [15:0] Rs_out,Rd_out;
+  wire [31:0] rs,rt,rd;
+  reg [31:0] register_CO [0:7];
+   
+  wire [31:0] y,x;
+  assign y[15:0] = Rs_val;
+  assign y[31:16] = Rt_val;
+  
+ 
+ assign x = register_CO[rt_add];
+  
+ assign Rs_out = x[15:0];
+ assign Rd_out = x[31:16];
+  
+ 
+ always @(posedge clk or posedge reset) begin  //reg_CO write enable //moveCO
+    if (reset == 1) begin 
+        register_CO[rd_add] = 0;
+    end
+    else if (op==12) begin
+        register_CO[rd_add] = y;
+    end
+end 
+
+assign rs = register_CO[rs_add];
+assign rt = register_CO[rt_add];
+
+FloatingPointAdder call1(rs,rt,rd);
+
+
+always @(posedge clk or posedge reset) begin  //reg write rd val
+    if (reset == 1) begin 
+        register_CO[rd_add] = 0;
+    end
+    else if (op==11) begin
+        register_CO[rd_add] = rd;
+    end
+end 
+
+initial begin  
+    
+    //reg file CO
+    register_CO[0] = 2;
+    register_CO[1] = 3;
+    register_CO[2] = 4;
+    register_CO[3] = 5;
+    register_CO[4] = 6;
+    register_CO[5] = 7;
+    register_CO[6] = 2;    
+    register_CO[7] = 0;    
+  
+ end
+endmodule

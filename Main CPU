@@ -1,0 +1,149 @@
+module maincpu(clk, reset, op, shamt, constant, rs_add, rt_add, rd_add, rd_val);
+  input [2:0] rs_add, rt_add, rd_add;
+  input [5:0] constant;
+  input [2:0] shamt;
+  input [3:0] op;
+  input clk, reset;
+  wire  [16:0] rs_val, rt_val;
+  reg [15:0] register [0:7];
+  reg [15:0] memory [0:7];
+   output reg[16:0] rd_val;
+  reg [15:0] hi,lo;
+  wire [15:0] sw; //sw
+  reg [31:0] mul;
+  wire [16:0] ALU_out;
+  reg [16:0] ALU_in;
+  reg [15:0] sr;  //special register
+ reg [15:0]  Rs_outp,Rd_outp;  //FPU output
+  
+  assign rs_val = register[rs_add];
+  assign rt_val = register[rt_add];
+  assign sw = register[rd_add]; //store word
+  
+
+  
+ //FPU 
+ 
+FPU call(clk,reset,op,rs_val,rt_val,rd_add,rt_add,rs_add,Rs_outp,Rd_outp);
+ 
+always @ (posedge clk or posedge reset ) begin //write enable for FPU 
+if (reset==1) begin 
+Rs_outp = 0;
+Rd_outp = 0;
+end
+else if (op==10) begin //move 
+register[rs_add] = Rs_outp;
+register[rd_add] = Rd_outp;
+end 
+
+
+end 
+
+
+
+always @* begin  // mux for ALU input 
+     if (op == 5 | op == 7 | op == 8 | op == 6) begin
+        ALU_in <= constant;
+    end
+	 else if (op==0 | op == 3 | op==4 | op==14)  begin 
+        ALU_in <= rt_val;
+    end
+end 
+
+
+ALU call1(op, rs_val, ALU_in, shamt, hi, lo, ALU_out, mul);   //alu call
+
+always @* begin // mux for ALU output 
+	 if (op==7) begin
+	    rd_val <= memory[ALU_out]; //lw
+		 end
+    else if (op==0 | op==1 | op==2 | op==3 | op==4 | op==5 | op==6| op==13 | op==14 | op==15 |op==8) begin
+        rd_val <= ALU_out; 
+    end 
+end
+
+
+
+always @(posedge clk , posedge reset) begin //hi & lo register 
+if (reset==1) begin 
+hi =0;
+lo = 0;
+end 
+
+else if ( op == 14) begin 
+lo = mul[15:0];
+hi = mul[31:16];
+end 
+end 
+
+   always @(posedge clk or posedge reset) begin  //reg write enable
+    if (reset == 1) begin 
+        register[rd_add] = 0;
+    end
+    else if (op==0 | op==1 | op==2 | op==3 | op==4 | op==5 | op==6 | op==7 | op==13 | op==15) begin 
+	 // register file write enable
+        register[rd_add] = rd_val;
+    end
+end
+
+always @ (posedge clk or posedge reset ) begin //data memory write enable
+if (reset==1) begin 
+rd_val = 0;
+end 
+else if (op==8) begin
+memory[rd_val] = sw;
+end
+end
+
+
+always @(posedge clk , posedge reset) begin //spcial register  // last bit overflow //second last as carry //third last as zero
+
+if (reset==1) begin 
+sr = 0;
+end 
+
+else if (rs_val[15] == ALU_in[15]) begin //overflow 
+       if (rs_val[15] == ALU_out[15] | ALU_in[15] == ALU_out[15]) begin
+		 sr[0] = 0;  //no overflow 
+		 end 
+		 else begin
+		 sr[0] = 1; //overflow 
+		 end 
+end 
+		 
+else if (ALU_out[16] == 1) begin //carry
+sr[1] = 1;
+end 
+
+else if (ALU_out == 0) begin //zero 
+sr[2] = 1;
+end 
+ 
+end
+
+initial begin  
+
+     //reg file
+    register[0] = 1;
+    register[1] = 2;
+    register[2] = 3;
+    register[3] = 4;
+    register[4] = 5;
+    register[5] = 6;
+    register[6] = 7;    
+    register[7] = 8;    
+
+
+    //data memory
+    memory[0] = 2;
+    memory[1] = 3;
+    memory[2] = 4;
+    memory[3] = 5;
+    memory[4] = 6;
+    memory[5] = 7;
+    memory[6] = 2;    
+    memory[7] = 0;    
+  
+ end  
+  
+endmodule

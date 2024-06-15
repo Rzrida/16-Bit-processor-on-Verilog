@@ -1,0 +1,49 @@
+module ALU(op, rs, ALU_inp, shamt1, hi_temp, lo_temp, ALU_outp, mult);
+input [3:0] op;
+input [16:0] rs,ALU_inp;
+input [15:0] hi_temp,lo_temp;
+input [2:0] shamt1;
+output reg [16:0] ALU_outp;
+output reg [31:0] mult;
+
+
+
+always @* begin //ALU
+if (op==0 | op ==5 | op==7 | op==8) begin  //add //addi //lw //sw
+ALU_outp = rs + ALU_inp;
+end 
+
+else if (op == 1) begin  //sll
+ALU_outp = rs << shamt1;
+end
+
+else if (op==2) begin //slr
+ALU_outp = rs >> shamt1;
+end
+
+else if (op==14) begin //mul
+mult = rs * ALU_inp;
+end
+
+else if (op==13) begin //mflo
+ALU_outp = lo_temp;
+end
+
+else if (op==15) begin  //mfhi
+ALU_outp = hi_temp;
+end 
+
+else if (op==3) begin   //or
+ALU_outp = rs | ALU_inp;
+end
+
+else if (op==4) begin   //and
+ALU_outp = rs & ALU_inp;
+end
+
+else if (op == 6) begin  //li
+ ALU_outp =  ALU_inp;
+end
+end
+
+endmodule
